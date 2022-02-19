@@ -21,8 +21,9 @@ clean_data$performance <- (clean_data$Good.Days + clean_data$Moderate.Days) / cl
 boxplot(clean_data$performance~clean_data$State,data=clean_data)
 correlation_data <- clean_data[,c(4:20)]
 cormat <- round(cor(correlation_data),2)
+clean_data$stateCode <- state.abb[match(clean_data$State,state.name)]
 boxplot(clean_data$performance~clean_data$stateCode,data=clean_data,ylim = c(0.25,1))
-clean_data$stateCode <- state.abb[clean_data$State]
+
 
 
 clean_cormat <- melt(round(cor(correlation_data),2)) %>% filter(Var2 == "performance" | Var2 == "Days.PM2.5" )
@@ -36,3 +37,5 @@ ggplot(data = melt(clean_cormat), aes(Var2, Var1, fill = value))+
   theme(axis.text.x = element_text(angle = 45, vjust = 1,
                                    size = 12, hjust = 1))+
   coord_fixed()
+
+

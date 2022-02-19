@@ -5,15 +5,15 @@
 mydata <- matrix(unlist(som_model$codes), ncol = length(data_train), byrow = FALSE)
 
 wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
-for (i in 2:15) wss[i] <- sum(kmeans(mydata,
+for (i in 2:10) wss[i] <- sum(kmeans(mydata,
                                      centers=i)$withinss)
 par(mar=c(5.1,4.1,4.1,2.1))
-plot(1:15, wss, type="b", xlab="Number of Clusters",
+plot(1:10, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares", main="Within cluster sum of squares (WCSS)")
 
 # Form clusters on grid
 ## use hierarchical clustering to cluster the codebook vectors
-som_cluster <- cutree(hclust(dist(mydata)), 3)
+som_cluster <- cutree(hclust(dist(mydata)), 4)
 
 # Show the map with different colours for every cluster						  
 plot(som_model, type="mapping", bgcol = pretty_palette[som_cluster], main = "Clusters")

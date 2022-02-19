@@ -34,5 +34,5 @@ rm(var_unscaled, var)
 #plot a variable from the original data set (will be uncapped etc.)
 # This function produces a menu for multiple heatmaps.
 source('./plotHeatMap.R')
-plotHeatMap(som_model, valid_data, variable=0)
+plotHeatMap(som_model, clean_data, variable=0)
 
