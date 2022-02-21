@@ -11,7 +11,9 @@ library(dplyr)
 library(reshape2)
 library(rgeos)
 library(Hmisc)
-
+library(randomForest)
+library(RSNNS)
+library(splitTools)
 # Colour palette definition
 pretty_palette <- c("#1f77b4", '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2')
 
@@ -24,8 +26,9 @@ cormat <- round(cor(correlation_data),2)
 clean_data$stateCode <- state.abb[match(clean_data$State,state.name)]
 boxplot(clean_data$performance~clean_data$stateCode,data=clean_data,ylim = c(0.25,1))
 
-
-
+##shift target to end of the table and drop the year column
+clean_data = subset(clean_data,select = -c(3))
+clean_data = clean_data %>% relocate(Days.PM2.5,.after = last_col())
 clean_cormat <- melt(round(cor(correlation_data),2)) %>% filter(Var2 == "performance" | Var2 == "Days.PM2.5" )
 # ### Heatmap
 ggplot(data = melt(clean_cormat), aes(Var2, Var1, fill = value))+
@@ -38,4 +41,10 @@ ggplot(data = melt(clean_cormat), aes(Var2, Var1, fill = value))+
                                    size = 12, hjust = 1))+
   coord_fixed()
 
+### split data to 70 30 
+data.train <- clean_data[1:(nrow(clean_data)/2), ]
+data.test <- clean_data[-(1:(nrow(clean_data)/2)),]
+##### random forest
+rdmfrst = randomForest(Days.PM2.5~.,data = data.train, na.action = na.omit)
+treepred = predict(rdmfrst, data.test[,-20], type="class")
 
