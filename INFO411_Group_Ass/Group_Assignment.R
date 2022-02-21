@@ -29,7 +29,7 @@ boxplot(clean_data$performance~clean_data$stateCode,data=clean_data,ylim = c(0.2
 ##shift target to end of the table and drop the year column
 clean_data = subset(clean_data,select = -c(3))
 clean_data = clean_data %>% relocate(Days.PM2.5,.after = last_col())
-clean_cormat <- melt(round(cor(correlation_data),2)) %>% filter(Var2 == "performance" | Var2 == "Days.PM2.5" )
+clean_cormat <- melt(round(cor(correlation_data),2)) %>% filter(Var2 == "Days.PM2.5" )
 # ### Heatmap
 ggplot(data = melt(clean_cormat), aes(Var2, Var1, fill = value))+
   geom_tile(color = "white")+
@@ -40,11 +40,35 @@ ggplot(data = melt(clean_cormat), aes(Var2, Var1, fill = value))+
   theme(axis.text.x = element_text(angle = 45, vjust = 1,
                                    size = 12, hjust = 1))+
   coord_fixed()
-
+clean_data = subset(clean_data, select = -c(stateCode))
+clean_cormat[order(clean_cormat$value),]
 ### split data to 70 30 
 data.train <- clean_data[1:(nrow(clean_data)/2), ]
 data.test <- clean_data[-(1:(nrow(clean_data)/2)),]
+train = sample(1:nrow(clean_data),700)
 ##### random forest
-rdmfrst = randomForest(Days.PM2.5~.,data = data.train, na.action = na.omit)
-treepred = predict(rdmfrst, data.test[,-20], type="class")
+rdmfrst = randomForest(Days.PM2.5~.,data = clean_data,  type = "regression")
+rdmfrst
+sqrt(sum((rdmfrst$predicted - clean_data$Days.PM2.5)^2)/ nrow(clean_data))
+#### attempt to improve performance by reducing noisy features
+oob.err=double(13)
+test.err=double(13)
 
+#mtry is no of Variables randomly chosen at each split
+for(mtry in 1:18) 
+{
+  rf=randomForest(Days.PM2.5 ~ . , data = clean_data, subset = train,mtry=mtry,ntree=10000) 
+  oob.err[mtry] = rf$mse[400] #Error of all Trees fitted
+  
+  pred<-predict(rf,clean_data[-train,]) #Predictions on Test Set for each Tree
+  test.err[mtry]= with(clean_data[-train,], mean( (Days.PM2.5 - pred)^2)) #Mean Squared Test Error
+  
+  cat(mtry," ") #printing the output to the console
+  
+}
+matplot(1:mtry , cbind(oob.err,test.err), pch=19 , col=c("red","blue"),type="b",ylab="Mean Squared Error",xlab="Number of Predictors Considered at each Split")
+legend("topright",legend=c("Out of Bag Error","Test Error"),pch=19, col=c("red","blue"))
+###use mtry = 5 as parameter based off the MSE plot
+rdmfrst_tuned = randomForest(Days.PM2.5~.,data = clean_data,  type = "regression", mtry = 5, ntree = 10000)
+rdmfrst_tuned
+sqrt(sum((rdmfrst_tuned$predicted - clean_data$Days.PM2.5)^2)/ nrow(clean_data))
