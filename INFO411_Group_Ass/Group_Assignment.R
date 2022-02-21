@@ -25,7 +25,8 @@ correlation_data <- clean_data[,c(4:20)]
 cormat <- round(cor(correlation_data),2)
 clean_data$stateCode <- state.abb[match(clean_data$State,state.name)]
 boxplot(clean_data$performance~clean_data$stateCode,data=clean_data,ylim = c(0.25,1))
-
+boxplot(clean_data$Days.PM2.5,main='Days > 2.5PM concentrations',sub = paste("outlier rows:" ,boxplot.stats(clean_data$Days.PM2.5)$out))
+boxplot(clean_data$performance,main='Performance',sub = paste("outlier rows:" ,boxplot.stats(clean_data$performance)$out))
 ##shift target to end of the table and drop the year column
 clean_data = subset(clean_data,select = -c(3))
 clean_data = clean_data %>% relocate(Days.PM2.5,.after = last_col())
@@ -69,6 +70,25 @@ for(mtry in 1:18)
 matplot(1:mtry , cbind(oob.err,test.err), pch=19 , col=c("red","blue"),type="b",ylab="Mean Squared Error",xlab="Number of Predictors Considered at each Split")
 legend("topright",legend=c("Out of Bag Error","Test Error"),pch=19, col=c("red","blue"))
 ###use mtry = 5 as parameter based off the MSE plot
-rdmfrst_tuned = randomForest(Days.PM2.5~.,data = clean_data,  type = "regression", mtry = 5, ntree = 10000)
+rdmfrst_tuned = randomForest(Days.PM2.5~.,data = clean_data,  type = "regression", mtry = 6, ntree = 10000)
 rdmfrst_tuned
 sqrt(sum((rdmfrst_tuned$predicted - clean_data$Days.PM2.5)^2)/ nrow(clean_data))
+
+
+
+
+#### Linear regression
+### split data to 80 20 
+set.seed(100)
+trainingRowIndex <- sample(1:nrow(clean_data), 0.8*nrow(clean_data))
+
+data.train <- clean_data[trainingRowIndex, ] # model training data
+data.test <- clean_data[-trainingRowIndex, ] # test data
+
+# Build the model on training data
+goodlmMod <- lm(Days.PM2.5 ~ Moderate.Days + Days.Ozone + Max.AQI + Days.with.AQI, data=data.train)  # build the model
+goodPM2.5Pred <- predict(goodlmMod, data.test)  # predict PM2.5
+summary (goodlmMod)
+badlmMod <- lm(Days.PM2.5 ~ Days.NO2 + Good.Days, data=data.train)  # build the model
+badPM2.5Pred <- predict(badlmMod, data.test)  # predict PM2.5
+summary (badlmMod)
